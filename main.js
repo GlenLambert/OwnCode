@@ -46,16 +46,21 @@ function fixedPager(ind, dispSize) {
         tempRight.push(totalPages[i]);
     }
 
-    lPages = displayPages(percentDisp(dispSize - 2, tempLeft.length), tempLeft, tempRight)[0];
+    var dp = displayPages(percentDisp(dispSize - 2, tempLeft.length), tempLeft, tempRight);
+
+    lPages = dp[0];
     lPages.push(totalPages[ind]);
-    rPages = displayPages(percentDisp(dispSize - 2, tempLeft.length), tempLeft, tempRight)[1];
+    rPages = dp[1];
 
     pageDisp = lPages.concat(rPages);
+
+    if (pageDisp.length > dispSize) {
+        pageDisp.splice(1, 1);
+    }
 
 }
 
 function displayPages (pageQty, left, right) {
-    //SHIT'S HAPPENING HEREEEEEEEEEEEEEEEEE!!!!!!!!!!!!!!!!!!!!!!!
     var l = Math.ceil(left.length / pageQty[0]),
         r = Math.ceil(right.length / pageQty[1]),
         lArr = [], rArr = [];
@@ -76,10 +81,11 @@ function displayPages (pageQty, left, right) {
 }
 
 function percentDisp(numPag, left) {
-    var a = Math.floor((numPag * percent(left, totalPages.length)[0]) / 100);
+    var per = percent(left, totalPages.length);
+    var a = Math.ceil((numPag * per[0]) / 100);
     var b = Math.abs(numPag - a);
 
-    if (percent(left, totalPages.length)[1] >= 5) {
+    if (per[1] >= 5) {
         return [a + 1, b];
     } else {
         return [a, b + 1];
