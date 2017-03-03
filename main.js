@@ -1,101 +1,148 @@
 'use strict';
 
 var totalPages = [];
-var pageDisp = [];
+var outputPagesList = [];
 
-function pager(elements, pageSize, currentPage, dispSize) {
-// Determines the exact pages to be displayed by loading 'pageDisp'
-// with the list of them. When fewer than 8 pages all of them will be displayed.
+/**
+ * Initial main function. Populates an array with numbers representing the required pages of listed 
+ * elements. Then filters them according to the given inputs to populate another array that represents
+ * a list of the pages that will be displayed depending on the current page the user is at. If total
+ * amount of pages is 7 or less, they will all be displayed.
+ * 
+ * @param {Number} totalElements - Amount of elements to be sorted into pages.
+ * @param {Number} elementsPerPage - Desired amount of elements to display on each page.
+ * @param {Number} currentPage - Non-zero-based number of the current page the user is at.
+ * @param {Number} desiredDisplaySize - Desired amount of pages to be displayed after stepping.
+ */
+function pager(totalElements, elementsPerPage, currentPage, desiredDisplaySize) {
 
-    pageSize = (isNaN(pageSize)) ? 10 : pageSize; //Default value for elements per page (pageSize).
-    dispSize = (isNaN(dispSize)) ?  8 : dispSize; //Default value for displayed pages qty (dispSize).
+    elementsPerPage = (isNaN(elementsPerPage)) ? 10 : elementsPerPage;
+    desiredDisplaySize = (isNaN(desiredDisplaySize)) ?  8 : desiredDisplaySize;
     
     var page = 0;
     
-    for (let i = 0, l = Math.floor(elements / pageSize); i < l; i++) {
-        page++;
-        totalPages.push(page);
+    for (let i = 0, l = Math.floor(totalElements / elementsPerPage); i < l; i++) {
+        totalPages.push(++page);
     }
 
-    if (elements % pageSize !== 0) {
+    if (totalElements % elementsPerPage !== 0) {
         page++;
         totalPages.push(page);
     }
 
     if (totalPages.length > 7) {
-        fixedPager(currentPage - 1, dispSize);
-        return pageDisp;
+        fixedPager(currentPage - 1, desiredDisplaySize);
+        return outputPagesList;
     } else {
-            return totalPages;
+        return totalPages;
     }
 }
 
-function fixedPager(ind, dispSize) {
-    
-    var tempLeft = [], lPages = [], 
-        tempRight = [], rPages = [];
-    
-    ind = (ind < 0) ? 0 : ind;
-    ind = (ind > (totalPages.length - 1)) ? (totalPages.length - 1) : ind;
 
-    for (let i = (ind - 1); i >= 0; i--) {
-        tempLeft.unshift(totalPages[i]);
+/**
+ * Separates list of pages into two arrays, one starting from <currentPage - 1> on to the left,
+ * another one starting from <currentPage + 1> on to the right. Then calls the stepping functions and finally
+ * concatenates their results into the outputPagesList array.
+ * 
+ * @param {Number} currentPage - Zero-based index number of the current page the user is at.
+ * @param {Number} desiredDisplaySize - Desired amount of pages to be displayed after stepping.
+ */
+function fixedPager(currentPage, desiredDisplaySize) {
+    
+    var leftAllPages = [];
+    var rightAllPages = [];
+
+    var leftShownPages = [];
+    var rightShownPages = [];
+    
+    currentPage = (currentPage < 0) ? 0 : currentPage;
+    currentPage = (currentPage > (totalPages.length - 1)) ? (totalPages.length - 1) : currentPage;
+
+    for (let i = (currentPage - 1); i >= 0; i--) {
+        leftAllPages.unshift(totalPages[i]);
     }
 
-    for (let i = (ind + 1); i < totalPages.length; i++) {
-        tempRight.push(totalPages[i]);
+    for (let i = (currentPage + 1); i < totalPages.length; i++) {
+        rightAllPages.push(totalPages[i]);
     }
 
-    var dp = displayPages(percentDisp(dispSize - 2, tempLeft.length), tempLeft, tempRight);
+    var chosenPages = displayPages(percentDisp(desiredDisplaySize - 2, leftAllPages.length), leftAllPages, rightAllPages);
 
-    lPages = dp[0];
-    lPages.push(totalPages[ind]);
-    rPages = dp[1];
+    leftShownPages = chosenPages[0];
+    leftShownPages.push(totalPages[currentPage]);
+    rightShownPages = chosenPages[1];
 
-    pageDisp = lPages.concat(rPages);
+    outputPagesList = leftShownPages.concat(rightShownPages);
 
-    if (pageDisp.length > dispSize) {
-        pageDisp.splice(1, 1);
+    if (outputPagesList.length > desiredDisplaySize) {
+        outputPagesList.splice(1, 1);
     }
 
 }
 
-function displayPages (pageQty, left, right) {
-    var l = Math.ceil(left.length / pageQty[0]),
-        r = Math.ceil(right.length / pageQty[1]),
-        lArr = [], rArr = [];
 
-    for (let i = 0; i < left.length; i += l) {
-        lArr.push(left[i]);
+/**
+ * Steps through each array of pages following the left/right balance determined by the percentage of
+ * pages regarding the total. Returns two arrays containing each a selection of left and right
+ * pages to display.
+ * 
+ * @param {Array} leftRightBalance - Array of 2. [0] represents left balance, [1] represents right balance.
+ * @param {Array} leftAllPages - All pages to the left of the current one.
+ * @param {Array} rightAllPages - All pages to the right of the current one.
+ */
+function displayPages(leftRightBalance, leftAllPages, rightAllPages) {
+    
+    var leftStepping = Math.ceil(leftAllPages.length / leftRightBalance[0]);
+    var rightStepping = Math.ceil(rightAllPages.length / leftRightBalance[1]);
+    var leftChosenPages = [];
+    var rightChosenPages = [];
+
+    for (let i = 0; i < leftAllPages.length; i += leftStepping) {
+        leftChosenPages.push(leftAllPages[i]);
     }
 
-    if (right.length === 1) {
-        rArr.push(right[0]);
+    if (rightAllPages.length === 1) {
+        rightChosenPages.push(rightAllPages[0]);
     } else {
-        for (let i = right.length - 1; i > 0; i -= r) {
-            rArr.unshift(right[i]);
+        for (let i = rightAllPages.length - 1; i > 0; i -= rightStepping) {
+            rightChosenPages.unshift(rightAllPages[i]);
         }
     }
 
-    return [lArr, rArr];
+    return [leftChosenPages, rightChosenPages];
 }
 
-function percentDisp(numPag, left) {
-    var per = percent(left, totalPages.length);
-    var a = Math.ceil((numPag * per[0]) / 100);
-    var b = Math.abs(numPag - a);
 
-    if (per[1] >= 5) {
-        return [a + 1, b];
+/**
+ * Determines the balance of how many pages must be shown each to the left and the right sides in regard
+ * of the desired total amount of pages to display. Returns an array of 2 where [0] represents how many
+ * pages to the right and [1] to the left.
+ * 
+ * @param {Number} displaySize - Desired amount of pages to be displayed after stepping.
+ * @param {Number} leftPagesLength - Total amount of pages to the left of the current one before stepping.
+ */
+function percentDisp(displaySize, leftPagesLength) {
+    var percentages = percent(leftPagesLength, totalPages.length);
+    var leftBalance = Math.ceil((displaySize * percentages[0]) / 100);
+    var rightBalance = Math.abs(displaySize - leftBalance);
+
+    if (percentages[1] >= 5) {
+        return [leftBalance + 1, rightBalance];
     } else {
-        return [a, b + 1];
+        return [leftBalance, rightBalance + 1];
     }
 }
 
+
+/**
+ * 
+ * @param {*} value 
+ * @param {*} total 
+ */
 function percent(value, total) {
-    var a = Math.floor((100 * value) / total);
-    var b = Number(String(((100 * value) / total) % 1).charAt(2));
-    return [a, b];
+    var integerPercentage = Math.floor((100 * value) / total);
+    var decimalPercentage = Number(String(((100 * value) / total) % 1).charAt(2));
+    return [integerPercentage, decimalPercentage];
 }
 
 function getArg(idx) {
